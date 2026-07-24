@@ -8,7 +8,7 @@
 
     <div class="flex items-center gap-3">
         <button wire:click="runSimulation" wire:loading.attr="disabled"
-            class="px-4 py-2 text-sm font-medium rounded-md bg-emerald-500 text-slate-950 hover:bg-emerald-400 disabled:opacity-50">
+            class="px-4 py-2 text-sm font-semibold rounded-lg bg-[#00E500] text-[#0b1220] hover:brightness-90 disabled:opacity-50">
             <span wire:loading.remove wire:target="runSimulation">Simülasyonu Başlat</span>
             <span wire:loading wire:target="runSimulation">Çalışıyor...</span>
         </button>
@@ -20,6 +20,39 @@
     @endif
 
     @if ($hasRun)
+        {{-- Summary cards --}}
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            @php
+                $cards = [
+                    ['label' => 'Batarya SOC (gün sonu)', 'value' => '%'.$metrics['finalSocPercent']],
+                    ['label' => 'Günlük Üretim', 'value' => $metrics['totalProductionKwh'].' kWh'],
+                    ['label' => 'Günlük Tüketim', 'value' => $metrics['totalConsumptionKwh'].' kWh'],
+                    ['label' => 'Şebekeden Alınan', 'value' => $metrics['totalGridDrawKwh'].' kWh'],
+                    ['label' => 'Piyasaya Satılan', 'value' => $metrics['totalSoldKwh'].' kWh'],
+                    ['label' => 'Toplam Kayıp', 'value' => $metrics['totalLossKwh'].' kWh'],
+                ];
+            @endphp
+            @foreach ($cards as $card)
+                <div class="rounded-2xl p-4 bg-[#172341] border border-[#243256]">
+                    <p class="text-xs text-slate-400">{{ $card['label'] }}</p>
+                    <p class="mt-1 text-xl font-bold text-[#00E500]">{{ $card['value'] }}</p>
+                </div>
+            @endforeach
+        </div>
+
+        {{-- Charts --}}
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6" wire:ignore>
+            <div class="rounded-2xl p-4 bg-[#172341] border border-[#243256]">
+                <p class="text-sm text-slate-300 mb-2">SOC / Üretim / Tüketim (saatlik)</p>
+                <canvas id="socProductionChart" height="220"></canvas>
+            </div>
+            <div class="rounded-2xl p-4 bg-[#172341] border border-[#243256]">
+                <p class="text-sm text-slate-300 mb-2">Piyasa Fiyatı (TL/kWh)</p>
+                <canvas id="priceChart" height="220"></canvas>
+            </div>
+        </div>
+
+        {{-- Detail table --}}
         <div class="bg-slate-900/60 border border-slate-800 rounded-lg overflow-x-auto">
             <table class="w-full text-sm">
                 <thead>
@@ -52,3 +85,124 @@
         </div>
     @endif
 </div>
+
+@script
+<script>
+    let socProductionChart = null;
+    let priceChart = null;
+
+    $wire.on('simulation-completed', ({ hourly }) => {
+        const labels = hourly.map(h => String(h.hour).padStart(2, '0') + ':00');
+        const soc = hourly.map(h => h.soc);
+        const production = hourly.map(h => h.production);
+        const consumption = hourly.map(h => h.consumption);
+        const price = hourly.map(h => h.price);
+
+        const socProductionCtx = document.getElementById('socProductionChart');
+        const priceCtx = document.getElementById('priceChart');
+
+        if (socProductionChart) {
+            socProductionChart.destroy();
+        }
+        if (priceChart) {
+            priceChart.destroy();
+        }
+
+        socProductionChart = new Chart(socProductionCtx, {
+            type: 'line',
+            data: {
+                labels,
+                datasets: [
+                    {
+                        label: 'SOC (%)',
+                        data: soc,
+                        borderColor: '#00E500',
+                        backgroundColor: '#00E500',
+                        yAxisID: 'y1',
+                        tension: 0.3,
+                    },
+                    {
+                        label: 'Üretim (kWh)',
+                        data: production,
+                        borderColor: '#60a5fa',
+                        backgroundColor: '#60a5fa',
+                        yAxisID: 'y2',
+                        tension: 0.3,
+                    },
+                    {
+                        label: 'Tüketim (kWh)',
+                        data: consumption,
+                        borderColor: '#f97316',
+                        backgroundColor: '#f97316',
+                        yAxisID: 'y2',
+                        tension: 0.3,
+                    },
+                ],
+            },
+            options: {
+                responsive: true,
+                interaction: { mode: 'index', intersect: false },
+                scales: {
+                    y1: {
+                        type: 'linear',
+                        position: 'left',
+                        min: 0,
+                        max: 100,
+                        ticks: { color: '#94a3b8' },
+                        grid: { color: '#243256' },
+                        title: { display: true, text: 'SOC (%)', color: '#94a3b8' },
+                    },
+                    y2: {
+                        type: 'linear',
+                        position: 'right',
+                        beginAtZero: true,
+                        ticks: { color: '#94a3b8' },
+                        grid: { drawOnChartArea: false },
+                        title: { display: true, text: 'kWh', color: '#94a3b8' },
+                    },
+                    x: {
+                        ticks: { color: '#94a3b8' },
+                        grid: { color: '#243256' },
+                    },
+                },
+                plugins: {
+                    legend: { labels: { color: '#e2e8f0' } },
+                },
+            },
+        });
+
+        priceChart = new Chart(priceCtx, {
+            type: 'line',
+            data: {
+                labels,
+                datasets: [
+                    {
+                        label: 'Fiyat (TL/kWh)',
+                        data: price,
+                        borderColor: '#00E500',
+                        backgroundColor: '#00E500',
+                        tension: 0.3,
+                    },
+                ],
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { color: '#94a3b8' },
+                        grid: { color: '#243256' },
+                    },
+                    x: {
+                        ticks: { color: '#94a3b8' },
+                        grid: { color: '#243256' },
+                    },
+                },
+                plugins: {
+                    legend: { labels: { color: '#e2e8f0' } },
+                },
+            },
+        });
+    });
+</script>
+@endscript

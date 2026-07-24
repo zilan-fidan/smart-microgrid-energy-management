@@ -3,6 +3,7 @@
 namespace App\Livewire\Simulation;
 
 use App\Domain\Contracts\SimulationRunnerInterface;
+use App\Domain\Simulation\DashboardMetrics;
 use App\Domain\Simulation\SimulationResult;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -11,6 +12,8 @@ use RuntimeException;
 class SimulationPanel extends Component
 {
     public array $rows = [];
+
+    public array $metrics = [];
 
     public bool $hasRun = false;
 
@@ -48,7 +51,24 @@ class SimulationPanel extends Component
             'reasons' => $r->decision->reasons,
         ], $daily->results);
 
+        $metrics = DashboardMetrics::fromDailySimulation($daily);
+
+        $this->metrics = [
+            'totalProductionKwh' => $metrics->totalProductionKwh,
+            'totalConsumptionKwh' => $metrics->totalConsumptionKwh,
+            'totalStoredKwh' => $metrics->totalStoredKwh,
+            'totalSoldKwh' => $metrics->totalSoldKwh,
+            'totalGridDrawKwh' => $metrics->totalGridDrawKwh,
+            'totalLossKwh' => $metrics->totalLossKwh,
+            'finalSocPercent' => end($daily->results)->decision->resultingSocPercent,
+        ];
+
         $this->hasRun = true;
+
+        $this->dispatch(
+            'simulation-completed',
+            hourly: $metrics->hourlyBreakdown,
+        );
     }
 
     #[Layout('layouts.app')]

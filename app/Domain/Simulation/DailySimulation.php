@@ -35,6 +35,15 @@ class DailySimulation
     }
 
     /**
+     * Round-trip efficiency losses, summed across every hour (Store and
+     * UseBattery are the only actions that ever carry a non-zero loss).
+     */
+    public function totalLossKwh(): float
+    {
+        return array_sum(array_map(fn (SimulationResult $r) => $r->decision->lossKwh, $this->results));
+    }
+
+    /**
      * Revenue from market sales (TL).
      */
     public function totalRevenueTl(): float
