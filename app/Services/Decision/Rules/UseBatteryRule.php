@@ -51,6 +51,10 @@ class UseBatteryRule implements DecisionRuleInterface
             $reasons[] = 'Açığın tamamı karşılanamadı, batarya kapasitesiyle sınırlı';
         }
 
-        return new Decision(DecisionAction::UseBattery, round($deliveredKwh, 4), $reasons, round($resultingSoc, 2));
+        // Energy pulled out of the battery but lost to inefficiency before
+        // reaching the load.
+        $lossKwh = $drawnFromBatteryKwh - $deliveredKwh;
+
+        return new Decision(DecisionAction::UseBattery, round($deliveredKwh, 4), $reasons, round($resultingSoc, 2), round($lossKwh, 4));
     }
 }

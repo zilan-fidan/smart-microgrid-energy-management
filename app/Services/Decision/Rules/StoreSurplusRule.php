@@ -46,6 +46,10 @@ class StoreSurplusRule implements DecisionRuleInterface
             $reasons[] = 'Depolanabilir miktar batarya kapasitesiyle sınırlı';
         }
 
-        return new Decision(DecisionAction::Store, round($storedKwh, 4), $reasons, round($resultingSoc, 2));
+        // Energy that entered the charging leg but was lost to inefficiency,
+        // i.e. never became usable stored energy.
+        $lossKwh = $chargeEfficiency > 0 ? $storedKwh * (1 / $chargeEfficiency - 1) : 0.0;
+
+        return new Decision(DecisionAction::Store, round($storedKwh, 4), $reasons, round($resultingSoc, 2), round($lossKwh, 4));
     }
 }
