@@ -7,11 +7,13 @@ use App\Domain\Assets\ConsumptionPoint;
 use App\Domain\Assets\SolarPlant;
 use App\Domain\Assets\WindPlant;
 use App\Domain\Contracts\AssetRepositoryInterface;
+use App\Domain\Contracts\ProfileGeneratorResolverInterface;
 
 class AssetService
 {
     public function __construct(
         private readonly AssetRepositoryInterface $repository,
+        private readonly ProfileGeneratorResolverInterface $profileGenerators,
     ) {
     }
 
@@ -28,12 +30,16 @@ class AssetService
 
     public function saveSolarPlant(?string $id, string $name, float $capacityKw): SolarPlant
     {
+        $hourly = $id === null
+            ? $this->generateHourlyValues('solar', $capacityKw)
+            : $this->existingHourlyValues($id, 'hourly_output_kwh');
+
         $saved = $this->repository->save([
             'type' => 'solar',
             'id' => $id,
             'name' => $name,
             'capacity_kw' => $capacityKw,
-            'hourly_output_kwh' => $this->existingHourlyValues('solar', $id, 'hourly_output_kwh'),
+            'hourly_output_kwh' => $hourly,
         ]);
 
         return SolarPlant::fromArray($saved);
@@ -57,12 +63,16 @@ class AssetService
 
     public function saveWindPlant(?string $id, string $name, float $capacityKw): WindPlant
     {
+        $hourly = $id === null
+            ? $this->generateHourlyValues('wind', $capacityKw)
+            : $this->existingHourlyValues($id, 'hourly_output_kwh');
+
         $saved = $this->repository->save([
             'type' => 'wind',
             'id' => $id,
             'name' => $name,
             'capacity_kw' => $capacityKw,
-            'hourly_output_kwh' => $this->existingHourlyValues('wind', $id, 'hourly_output_kwh'),
+            'hourly_output_kwh' => $hourly,
         ]);
 
         return WindPlant::fromArray($saved);
@@ -86,12 +96,16 @@ class AssetService
 
     public function saveConsumptionPoint(?string $id, string $name, float $averageDemandKwh): ConsumptionPoint
     {
+        $hourly = $id === null
+            ? $this->generateHourlyValues('consumption', $averageDemandKwh)
+            : $this->existingHourlyValues($id, 'hourly_demand_kwh');
+
         $saved = $this->repository->save([
             'type' => 'consumption',
             'id' => $id,
             'name' => $name,
             'average_demand_kwh' => $averageDemandKwh,
-            'hourly_demand_kwh' => array_fill(0, 24, $averageDemandKwh),
+            'hourly_demand_kwh' => $hourly,
         ]);
 
         return ConsumptionPoint::fromArray($saved);
@@ -147,16 +161,22 @@ class AssetService
     }
 
     /**
-     * Preserve a previously stored hourly profile when editing an asset,
-     * since the CRUD form only edits headline attributes (profiles are
-     * populated by the mock data generator in a later phase).
+     * Auto-fill a new asset's hourly profile via its type's generator,
+     * scaled to this specific asset's capacity/average value.
      */
-    private function existingHourlyValues(string $type, ?string $id, string $field): array
+    private function generateHourlyValues(string $type, float $scale): array
     {
-        if ($id === null) {
-            return array_fill(0, 24, 0.0);
-        }
+        $shape = $this->profileGenerators->resolve($type)->generate();
 
+        return array_map(fn (float $value) => round($value * $scale, 4), $shape);
+    }
+
+    /**
+     * Preserve a previously stored hourly profile when editing an asset,
+     * since the CRUD form only edits headline attributes.
+     */
+    private function existingHourlyValues(string $id, string $field): array
+    {
         $record = $this->repository->find($id);
 
         return $record[$field] ?? array_fill(0, 24, 0.0);
