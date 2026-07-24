@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Domain\Contracts\AssetRepositoryInterface;
+use App\Repositories\JsonAssetRepository;
 use App\Services\Storage\JsonFileStorage;
 use App\Services\Storage\JsonStorageInterface;
 use Illuminate\Support\Facades\Storage;
@@ -19,6 +21,10 @@ class AppServiceProvider extends ServiceProvider
                 Storage::disk('microgrid'),
                 'microgrid.json',
             );
+        });
+
+        $this->app->singleton(AssetRepositoryInterface::class, function ($app) {
+            return new JsonAssetRepository($app->make(JsonStorageInterface::class));
         });
     }
 
