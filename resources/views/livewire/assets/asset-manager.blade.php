@@ -1,6 +1,6 @@
 <div class="space-y-6">
     <div class="flex items-center justify-between">
-        <h2 class="text-2xl font-bold">Varlıklar</h2>
+        <h2 class="text-2xl font-bold text-white">Varlıklar</h2>
         <a href="{{ route('dashboard') }}" class="text-sm text-slate-400 hover:text-slate-200 underline underline-offset-4">
             &larr; Dashboard
         </a>
@@ -11,8 +11,8 @@
             <button
                 type="button"
                 wire:click="setTab('{{ $key }}')"
-                class="px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors
-                    {{ $tab === $key ? 'border-emerald-400 text-emerald-400' : 'border-transparent text-slate-400 hover:text-slate-200' }}"
+                class="px-4 py-2 text-sm font-semibold border-b-2 -mb-px transition-colors
+                    {{ $tab === $key ? 'border-brand-green text-brand-green' : 'border-transparent text-slate-400 hover:text-slate-200' }}"
             >
                 {{ $label }}
             </button>
@@ -21,7 +21,7 @@
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {{-- Form --}}
-        <form wire:submit="save" class="lg:col-span-1 space-y-4 bg-slate-900/60 border border-slate-800 rounded-lg p-5">
+        <form wire:submit="save" class="lg:col-span-1 space-y-4 bg-brand-navy border border-brand-navy-light rounded-[10px] p-5">
             <h3 class="text-sm font-semibold text-slate-300">
                 {{ $editingId ? 'Kaydı Düzenle' : 'Yeni Kayıt' }}
             </h3>
@@ -29,7 +29,7 @@
             <div>
                 <label class="block text-xs text-slate-400 mb-1">Ad</label>
                 <input type="text" wire:model="name"
-                    class="w-full rounded-md bg-slate-950 border border-slate-700 px-3 py-2 text-sm focus:outline-none focus:border-emerald-500">
+                    class="w-full bg-slate-950 border border-slate-700 rounded-[10px] px-3 py-2 text-sm focus:outline-none focus:border-brand-green">
                 @error('name') <p class="text-xs text-rose-400 mt-1">{{ $message }}</p> @enderror
             </div>
 
@@ -37,7 +37,7 @@
                 <div>
                     <label class="block text-xs text-slate-400 mb-1">Kapasite (kW)</label>
                     <input type="number" step="0.01" wire:model="capacityKw"
-                        class="w-full rounded-md bg-slate-950 border border-slate-700 px-3 py-2 text-sm focus:outline-none focus:border-emerald-500">
+                        class="w-full bg-slate-950 border border-slate-700 rounded-[10px] px-3 py-2 text-sm focus:outline-none focus:border-brand-green">
                     @error('capacityKw') <p class="text-xs text-rose-400 mt-1">{{ $message }}</p> @enderror
                 </div>
             @endif
@@ -46,7 +46,7 @@
                 <div>
                     <label class="block text-xs text-slate-400 mb-1">Ortalama Tüketim (kWh)</label>
                     <input type="number" step="0.01" wire:model="averageDemandKwh"
-                        class="w-full rounded-md bg-slate-950 border border-slate-700 px-3 py-2 text-sm focus:outline-none focus:border-emerald-500">
+                        class="w-full bg-slate-950 border border-slate-700 rounded-[10px] px-3 py-2 text-sm focus:outline-none focus:border-brand-green">
                     @error('averageDemandKwh') <p class="text-xs text-rose-400 mt-1">{{ $message }}</p> @enderror
                 </div>
             @endif
@@ -55,14 +55,14 @@
                 <div>
                     <label class="block text-xs text-slate-400 mb-1">Kapasite (kWh)</label>
                     <input type="number" step="0.01" wire:model="capacityKwh"
-                        class="w-full rounded-md bg-slate-950 border border-slate-700 px-3 py-2 text-sm focus:outline-none focus:border-emerald-500">
+                        class="w-full bg-slate-950 border border-slate-700 rounded-[10px] px-3 py-2 text-sm focus:outline-none focus:border-brand-green">
                     @error('capacityKwh') <p class="text-xs text-rose-400 mt-1">{{ $message }}</p> @enderror
                 </div>
 
                 <div>
                     <label class="block text-xs text-slate-400 mb-1">SOC (%)</label>
                     <input type="number" step="0.01" wire:model="socPercent"
-                        class="w-full rounded-md bg-slate-950 border border-slate-700 px-3 py-2 text-sm focus:outline-none focus:border-emerald-500">
+                        class="w-full bg-slate-950 border border-slate-700 rounded-[10px] px-3 py-2 text-sm focus:outline-none focus:border-brand-green">
                     @error('socPercent') <p class="text-xs text-rose-400 mt-1">{{ $message }}</p> @enderror
                 </div>
 
@@ -70,13 +70,13 @@
                     <div>
                         <label class="block text-xs text-slate-400 mb-1">Min SOC (%)</label>
                         <input type="number" step="0.01" wire:model="minSoc"
-                            class="w-full rounded-md bg-slate-950 border border-slate-700 px-3 py-2 text-sm focus:outline-none focus:border-emerald-500">
+                            class="w-full bg-slate-950 border border-slate-700 rounded-[10px] px-3 py-2 text-sm focus:outline-none focus:border-brand-green">
                         @error('minSoc') <p class="text-xs text-rose-400 mt-1">{{ $message }}</p> @enderror
                     </div>
                     <div>
                         <label class="block text-xs text-slate-400 mb-1">Max SOC (%)</label>
                         <input type="number" step="0.01" wire:model="maxSoc"
-                            class="w-full rounded-md bg-slate-950 border border-slate-700 px-3 py-2 text-sm focus:outline-none focus:border-emerald-500">
+                            class="w-full bg-slate-950 border border-slate-700 rounded-[10px] px-3 py-2 text-sm focus:outline-none focus:border-brand-green">
                         @error('maxSoc') <p class="text-xs text-rose-400 mt-1">{{ $message }}</p> @enderror
                     </div>
                 </div>
@@ -84,17 +84,17 @@
                 <div>
                     <label class="block text-xs text-slate-400 mb-1">Verimlilik (0-1)</label>
                     <input type="number" step="0.01" wire:model="efficiencyRate"
-                        class="w-full rounded-md bg-slate-950 border border-slate-700 px-3 py-2 text-sm focus:outline-none focus:border-emerald-500">
+                        class="w-full bg-slate-950 border border-slate-700 rounded-[10px] px-3 py-2 text-sm focus:outline-none focus:border-brand-green">
                     @error('efficiencyRate') <p class="text-xs text-rose-400 mt-1">{{ $message }}</p> @enderror
                 </div>
             @endif
 
             <div class="flex gap-2 pt-2">
-                <button type="submit" class="px-4 py-2 text-sm font-medium rounded-md bg-emerald-500 text-slate-950 hover:bg-emerald-400">
+                <button type="submit" class="px-4 py-2 text-sm font-bold rounded-[10px] bg-brand-green text-slate-950 hover:brightness-90">
                     Kaydet
                 </button>
                 @if ($editingId)
-                    <button type="button" wire:click="cancelEdit" class="px-4 py-2 text-sm font-medium rounded-md border border-slate-700 text-slate-300 hover:bg-slate-800">
+                    <button type="button" wire:click="cancelEdit" class="px-4 py-2 text-sm font-semibold rounded-[10px] border border-slate-700 text-slate-300 hover:bg-slate-800">
                         Vazgeç
                     </button>
                 @endif
@@ -102,7 +102,7 @@
         </form>
 
         {{-- List --}}
-        <div class="lg:col-span-2 bg-slate-900/60 border border-slate-800 rounded-lg p-5">
+        <div class="lg:col-span-2 bg-brand-navy border border-brand-navy-light rounded-[10px] p-5">
             @if ($tab === 'battery')
                 @if ($battery)
                     <dl class="grid grid-cols-2 gap-4 text-sm">
@@ -113,7 +113,7 @@
                         <div><dt class="text-slate-400">Verimlilik</dt><dd>{{ $battery->getEfficiencyRate() }}</dd></div>
                     </dl>
                     <button wire:click="deleteBattery" wire:confirm="Bataryayı silmek istediğine emin misin?"
-                        class="mt-4 px-3 py-1.5 text-xs font-medium rounded-md border border-rose-800 text-rose-400 hover:bg-rose-950">
+                        class="mt-4 px-3 py-1.5 text-xs font-semibold rounded-[10px] border border-rose-800 text-rose-400 hover:bg-rose-950">
                         Sil
                     </button>
                 @else
@@ -141,7 +141,7 @@
                                         {{ $tab === 'consumption' ? $record->getAverageDemandKwh() : $record->getCapacityKw() }}
                                     </td>
                                     <td class="py-2 text-right space-x-2">
-                                        <button wire:click="edit('{{ $record->getId() }}')" class="text-xs text-emerald-400 hover:underline">
+                                        <button wire:click="edit('{{ $record->getId() }}')" class="text-xs text-brand-green hover:underline">
                                             Düzenle
                                         </button>
                                         <button wire:click="delete('{{ $record->getId() }}')" wire:confirm="Silmek istediğine emin misin?" class="text-xs text-rose-400 hover:underline">
