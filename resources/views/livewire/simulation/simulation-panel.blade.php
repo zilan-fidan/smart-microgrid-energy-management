@@ -1,6 +1,6 @@
 <div class="space-y-6">
     <div class="flex items-center justify-between">
-        <h2 class="text-2xl font-bold">Simülasyon</h2>
+        <h2 class="text-2xl font-bold text-white">Simülasyon</h2>
         <a href="{{ route('dashboard') }}" class="text-sm text-slate-400 hover:text-slate-200 underline underline-offset-4">
             &larr; Dashboard
         </a>
@@ -8,7 +8,7 @@
 
     <div class="flex items-center gap-3">
         <button wire:click="runSimulation" wire:loading.attr="disabled"
-            class="px-4 py-2 text-sm font-semibold rounded-lg bg-[#00E500] text-[#0b1220] hover:brightness-90 disabled:opacity-50">
+            class="px-4 py-2 text-sm font-bold rounded-[10px] bg-brand-green text-slate-950 hover:brightness-90 disabled:opacity-50">
             <span wire:loading.remove wire:target="runSimulation">Simülasyonu Başlat</span>
             <span wire:loading wire:target="runSimulation">Çalışıyor...</span>
         </button>
@@ -21,39 +21,43 @@
 
     @if ($hasRun)
         {{-- Summary cards --}}
-        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             @php
                 $cards = [
                     ['label' => 'Batarya SOC (gün sonu)', 'value' => '%'.$metrics['finalSocPercent']],
+                    ['label' => 'Batarya SOH (gün sonu)', 'value' => '%'.$metrics['projectedSohPercent']],
                     ['label' => 'Günlük Üretim', 'value' => $metrics['totalProductionKwh'].' kWh'],
                     ['label' => 'Günlük Tüketim', 'value' => $metrics['totalConsumptionKwh'].' kWh'],
                     ['label' => 'Şebekeden Alınan', 'value' => $metrics['totalGridDrawKwh'].' kWh'],
                     ['label' => 'Piyasaya Satılan', 'value' => $metrics['totalSoldKwh'].' kWh'],
                     ['label' => 'Toplam Kayıp', 'value' => $metrics['totalLossKwh'].' kWh'],
+                    ['label' => 'Batarya Olmasaydı (Maliyet)', 'value' => $metrics['baselineNetCostTl'].' TL'],
+                    ['label' => 'Gerçekleşen Net Maliyet', 'value' => $metrics['actualNetCostTl'].' TL'],
+                    ['label' => 'Tasarruf', 'value' => $metrics['savingsTl'].' TL'],
                 ];
             @endphp
             @foreach ($cards as $card)
-                <div class="rounded-2xl p-4 bg-[#172341] border border-[#243256]">
+                <div class="rounded-[10px] p-4 bg-brand-navy border border-brand-navy-light">
                     <p class="text-xs text-slate-400">{{ $card['label'] }}</p>
-                    <p class="mt-1 text-xl font-bold text-[#00E500]">{{ $card['value'] }}</p>
+                    <p class="mt-1 text-xl font-bold text-brand-green">{{ $card['value'] }}</p>
                 </div>
             @endforeach
         </div>
 
         {{-- Charts --}}
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6" wire:ignore>
-            <div class="rounded-2xl p-4 bg-[#172341] border border-[#243256]">
+            <div class="rounded-[10px] p-4 bg-brand-navy border border-brand-navy-light">
                 <p class="text-sm text-slate-300 mb-2">SOC / Üretim / Tüketim (saatlik)</p>
                 <canvas id="socProductionChart" height="220"></canvas>
             </div>
-            <div class="rounded-2xl p-4 bg-[#172341] border border-[#243256]">
+            <div class="rounded-[10px] p-4 bg-brand-navy border border-brand-navy-light">
                 <p class="text-sm text-slate-300 mb-2">Piyasa Fiyatı (TL/kWh)</p>
                 <canvas id="priceChart" height="220"></canvas>
             </div>
         </div>
 
         {{-- Detail table --}}
-        <div class="bg-slate-900/60 border border-slate-800 rounded-lg overflow-x-auto">
+        <div class="bg-brand-navy border border-brand-navy-light rounded-[10px] overflow-x-auto">
             <table class="w-full text-sm">
                 <thead>
                     <tr class="text-left text-slate-400 border-b border-slate-800">

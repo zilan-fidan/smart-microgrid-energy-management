@@ -17,4 +17,6 @@ interface StorageAssetInterface
     public function getMaxSoc(): float;
 
     public function getEfficiencyRate(): float;
+
+    public function getSohPercent(): float;
 }

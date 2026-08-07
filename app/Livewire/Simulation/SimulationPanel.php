@@ -5,6 +5,7 @@ namespace App\Livewire\Simulation;
 use App\Domain\Contracts\SimulationRunnerInterface;
 use App\Domain\Simulation\DashboardMetrics;
 use App\Domain\Simulation\SimulationResult;
+use App\Services\Simulation\BaselineCostCalculator;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 use RuntimeException;
@@ -21,9 +22,12 @@ class SimulationPanel extends Component
 
     protected SimulationRunnerInterface $runner;
 
-    public function boot(SimulationRunnerInterface $runner): void
+    protected BaselineCostCalculator $baselineCostCalculator;
+
+    public function boot(SimulationRunnerInterface $runner, BaselineCostCalculator $baselineCostCalculator): void
     {
         $this->runner = $runner;
+        $this->baselineCostCalculator = $baselineCostCalculator;
     }
 
     public function runSimulation(): void
@@ -51,7 +55,7 @@ class SimulationPanel extends Component
             'reasons' => $r->decision->reasons,
         ], $daily->results);
 
-        $metrics = DashboardMetrics::fromDailySimulation($daily);
+        $metrics = DashboardMetrics::fromDailySimulation($daily, $this->baselineCostCalculator);
 
         $this->metrics = [
             'totalProductionKwh' => $metrics->totalProductionKwh,
@@ -60,6 +64,10 @@ class SimulationPanel extends Component
             'totalSoldKwh' => $metrics->totalSoldKwh,
             'totalGridDrawKwh' => $metrics->totalGridDrawKwh,
             'totalLossKwh' => $metrics->totalLossKwh,
+            'projectedSohPercent' => $metrics->projectedSohPercent,
+            'actualNetCostTl' => $metrics->actualNetCostTl,
+            'baselineNetCostTl' => $metrics->baselineNetCostTl,
+            'savingsTl' => $metrics->savingsTl,
             'finalSocPercent' => end($daily->results)->decision->resultingSocPercent,
         ];
 

@@ -14,6 +14,7 @@ class Battery implements StorageAssetInterface
         private readonly float $minSoc,
         private readonly float $maxSoc,
         private readonly float $efficiencyRate,
+        private readonly float $sohPercent = 100.0,
     ) {
     }
 
@@ -27,6 +28,7 @@ class Battery implements StorageAssetInterface
             minSoc: (float) $data['min_soc'],
             maxSoc: (float) $data['max_soc'],
             efficiencyRate: (float) $data['efficiency_rate'],
+            sohPercent: (float) ($data['soh_percent'] ?? 100.0),
         );
     }
 
@@ -41,6 +43,7 @@ class Battery implements StorageAssetInterface
             'min_soc' => $this->minSoc,
             'max_soc' => $this->maxSoc,
             'efficiency_rate' => $this->efficiencyRate,
+            'soh_percent' => $this->sohPercent,
         ];
     }
 
@@ -77,5 +80,10 @@ class Battery implements StorageAssetInterface
     public function getEfficiencyRate(): float
     {
         return $this->efficiencyRate;
+    }
+
+    public function getSohPercent(): float
+    {
+        return $this->sohPercent;
     }
 }

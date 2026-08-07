@@ -59,6 +59,16 @@ class DailySimulation
         return $this->sumValueFor(DecisionAction::DrawFromGrid);
     }
 
+    /**
+     * Net real cash flow (TL): grid purchases minus market sales. Store/
+     * UseBattery move no money directly, so they're excluded — their value
+     * shows up indirectly as a smaller totalGridCostTl.
+     */
+    public function actualNetCostTl(): float
+    {
+        return $this->totalGridCostTl() - $this->totalRevenueTl();
+    }
+
     private function sumAmountFor(DecisionAction $action): float
     {
         return array_sum(array_map(

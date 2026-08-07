@@ -13,6 +13,7 @@ class SimulationResult
         public readonly float $consumptionKwh,
         public readonly float $priceKwh,
         public readonly float $socPercentBefore,
+        public readonly float $sohPercentAfter,
     ) {
     }
 }
