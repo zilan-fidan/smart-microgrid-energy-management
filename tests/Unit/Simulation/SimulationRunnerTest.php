@@ -157,9 +157,11 @@ class SimulationRunnerTest extends TestCase
         }
 
         // A day of real cycling should measurably (but only slightly) wear the battery.
+        // Store's wear is based on amountKwh only (energy that actually reaches the
+        // cell) — its charging-leg loss never touches the cell, so it doesn't cycle it.
         $finalSoh = $results[23]->sohPercentAfter;
         $this->assertLessThan(100.0, $finalSoh);
-        $this->assertEqualsWithDelta(99.8978, $finalSoh, 0.001);
+        $this->assertEqualsWithDelta(99.9000, $finalSoh, 0.001);
     }
 
     public function test_running_the_simulation_never_writes_to_the_repository(): void

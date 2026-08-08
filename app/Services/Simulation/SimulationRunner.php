@@ -60,14 +60,21 @@ class SimulationRunner implements SimulationRunnerInterface
     }
 
     /**
-     * Gross energy moved through the battery this hour (charge or
-     * discharge side, including its own efficiency loss) — Sell/DrawFromGrid
-     * never touch the battery, so they contribute nothing to cycle wear.
+     * Energy that actually cycled through the battery cell this hour —
+     * Sell/DrawFromGrid never touch the battery, so they contribute nothing.
+     *
+     * Store's lossKwh is dissipated on the charging leg (converter/chemical
+     * loss) BEFORE the energy reaches the cell, so only amountKwh (what
+     * actually lands in storage) cycles the cell. UseBattery's lossKwh is
+     * the opposite: amountKwh + lossKwh is what's drawn OUT of the cell
+     * (amountKwh is what survives to reach the load), so the full raw
+     * discharge — including its own loss — is what wears the cell.
      */
     private function cycledKwhFor(Decision $decision): float
     {
         return match ($decision->action) {
-            DecisionAction::Store, DecisionAction::UseBattery => $decision->amountKwh + $decision->lossKwh,
+            DecisionAction::Store => $decision->amountKwh,
+            DecisionAction::UseBattery => $decision->amountKwh + $decision->lossKwh,
             default => 0.0,
         };
     }
