@@ -146,6 +146,7 @@ class AssetService
             'min_soc' => $minSoc,
             'max_soc' => $maxSoc,
             'efficiency_rate' => $efficiencyRate,
+            'soh_percent' => $existing?->getSohPercent() ?? 100.0,
         ]);
 
         return Battery::fromArray($saved);
