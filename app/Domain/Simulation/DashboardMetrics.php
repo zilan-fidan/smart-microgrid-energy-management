@@ -54,7 +54,7 @@ class DashboardMetrics
             totalSoldKwh: round($simulation->totalSoldKwh(), 2),
             totalGridDrawKwh: round($simulation->totalDrawnFromGridKwh(), 2),
             totalLossKwh: round($simulation->totalLossKwh(), 2),
-            projectedSohPercent: round(end($simulation->results)->sohPercentAfter, 3),
+            projectedSohPercent: round($simulation->results[array_key_last($simulation->results)]->sohPercentAfter, 3),
             actualNetCostTl: round($actualNetCostTl, 2),
             baselineNetCostTl: round($baselineNetCostTl, 2),
             savingsTl: round($baselineNetCostTl - $actualNetCostTl, 2),

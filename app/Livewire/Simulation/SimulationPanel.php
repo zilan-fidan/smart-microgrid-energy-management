@@ -68,7 +68,7 @@ class SimulationPanel extends Component
             'actualNetCostTl' => $metrics->actualNetCostTl,
             'baselineNetCostTl' => $metrics->baselineNetCostTl,
             'savingsTl' => $metrics->savingsTl,
-            'finalSocPercent' => end($daily->results)->decision->resultingSocPercent,
+            'finalSocPercent' => $daily->results[array_key_last($daily->results)]->decision->resultingSocPercent,
         ];
 
         $this->hasRun = true;
