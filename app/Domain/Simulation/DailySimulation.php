@@ -21,7 +21,16 @@ class DailySimulation
 
     public function totalSoldKwh(): float
     {
-        return $this->sumAmountFor(DecisionAction::Sell);
+        return $this->sumAmountFor(DecisionAction::Sell) + $this->totalCurtailedSoldKwh();
+    }
+
+    /**
+     * Surplus curtailed out of Store decisions (headroom-limited) and sold
+     * to the market in the same hour — see StoreSurplusRule::decide().
+     */
+    public function totalCurtailedSoldKwh(): float
+    {
+        return array_sum(array_map(fn (SimulationResult $r) => $r->decision->curtailedSoldKwh, $this->results));
     }
 
     public function totalUsedFromBatteryKwh(): float
@@ -44,11 +53,17 @@ class DailySimulation
     }
 
     /**
-     * Revenue from market sales (TL).
+     * Revenue from market sales (TL) — Sell decisions plus any curtailed
+     * surplus sold alongside a Store decision in the same hour.
      */
     public function totalRevenueTl(): float
     {
-        return $this->sumValueFor(DecisionAction::Sell);
+        $curtailedRevenue = array_sum(array_map(
+            fn (SimulationResult $r) => $r->decision->curtailedSoldKwh * $r->priceKwh,
+            $this->results,
+        ));
+
+        return $this->sumValueFor(DecisionAction::Sell) + $curtailedRevenue;
     }
 
     /**

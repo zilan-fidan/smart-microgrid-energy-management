@@ -52,9 +52,10 @@ class StoreSurplusRuleTest extends TestCase
         $this->assertEqualsWithDelta(18.0, $decision->amountKwh, 0.0001);
         $this->assertEqualsWithDelta(68.0, $decision->resultingSocPercent, 0.0001);
         $this->assertEqualsWithDelta(2.0, $decision->lossKwh, 0.0001);
+        $this->assertSame(0.0, $decision->curtailedSoldKwh, 'no curtailment expected when headroom covers the full surplus');
     }
 
-    public function test_decide_caps_stored_amount_to_available_headroom(): void
+    public function test_decide_caps_stored_amount_and_sells_the_remaining_surplus_when_headroom_is_insufficient(): void
     {
         $rule = new StoreSurplusRule();
         $battery = BatteryFactory::make([
@@ -71,5 +72,17 @@ class StoreSurplusRuleTest extends TestCase
         $this->assertEqualsWithDelta(5.0, $decision->amountKwh, 0.0001);
         $this->assertEqualsWithDelta(90.0, $decision->resultingSocPercent, 0.0001);
         $this->assertStringContainsString('sınırlı', implode(' ', $decision->reasons));
+
+        // Raw surplus consumed by the 5 kWh that did fit = 5 / 0.9 = 5.5556 kWh.
+        // The rest of the 20 kWh surplus (14.4444 kWh) is curtailed onto the market.
+        $this->assertEqualsWithDelta(14.4444, $decision->curtailedSoldKwh, 0.001);
+
+        // The reason must be self-contained (both numbers spelled out), since
+        // it's the only place this split is explained to a demo viewer — the
+        // "Miktar" column only shows the stored half of the story.
+        $reasonText = implode(' ', $decision->reasons);
+        $this->assertStringContainsString('piyasaya satıldı', $reasonText);
+        $this->assertStringContainsString('5 kWh depolandı', $reasonText);
+        $this->assertStringContainsString('14.44 kWh', $reasonText);
     }
 }
