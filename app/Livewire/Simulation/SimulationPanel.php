@@ -73,6 +73,20 @@ class SimulationPanel extends Component
 
         $this->hasRun = true;
 
+        session([
+            'last_simulation' => [
+                'ranAt' => now()->toIso8601String(),
+                'savingsTl' => $metrics->savingsTl,
+                'hourly' => array_map(fn (array $h) => [
+                    'hour' => $h['hour'],
+                    'soc' => $h['soc'],
+                ], $metrics->hourlyBreakdown),
+                'actionCounts' => array_count_values(
+                    array_map(fn (SimulationResult $r) => $r->decision->action->value, $daily->results),
+                ),
+            ],
+        ]);
+
         $this->dispatch(
             'simulation-completed',
             hourly: $metrics->hourlyBreakdown,
