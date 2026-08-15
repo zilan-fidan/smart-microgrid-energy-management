@@ -9,6 +9,7 @@ Staj projesi — Laravel 12, Livewire 3, Tailwind CSS, Chart.js.
 - **Veri deposu:** Eloquent/migration yok — tüm domain verisi (varlıklar, simülasyon) `storage/app/microgrid.json` dosyasında tutulur. SQLite yalnızca Laravel'in kendi iç işleyişi (session/cache/queue) için mevcuttur, uygulamanın kendi verisiyle ilgisi yoktur.
 - **SOLID:** Karar motoru (Chain of Responsibility — her karar dalı ayrı bir `DecisionRuleInterface` uygulaması), mock veri üretimi, JSON depolama ve simülasyon akışı ayrı servis katmanlarına bölünmüştür. Detaylar için `app/Domain` ve `app/Services` altındaki sınıflara bakın.
 - **Yan etkisiz simülasyon:** "Simülasyonu Başlat" bir *"ne olurdu"* hesabıdır — kayıtlı batarya SOC/SOH'unu değiştirmez, her çalıştırma bağımsızdır.
+- **Dashboard özeti:** Ana sayfada özet metrik şeridi (Batarya SOC, kayıtlı varlık sayısı, son simülasyon zamanı, son tasarruf) ve son çalıştırılan simülasyonun mini grafikleri (SOC eğrisi + karar dağılımı) gösterilir. Bu veri session'da tutulur, kalıcı JSON depoya yazılmaz — yan etkisiz simülasyon garantisi böylece korunur.
 
 Uçtan uca bir demo akışı için [docs/DEMO.md](docs/DEMO.md) dosyasına bakın.
 
@@ -61,7 +62,7 @@ php artisan serve
 
 Tarayıcıda:
 
-- `/` — Dashboard (giriş sayfası)
+- `/` — Dashboard (giriş sayfası): özet metrik şeridi + son simülasyonun mini grafikleri (varsa)
 - `/assets` — Varlık yönetimi (güneş, rüzgar, batarya, tüketim — CRUD)
 - `/simulation` — 24 saatlik simülasyonu çalıştır, sonuç tablosu + grafikleri gör
 
@@ -73,4 +74,4 @@ Tarayıcıda:
 php artisan test
 ```
 
-Karar kuralları, verimlilik hesapları, baseline maliyet karşılaştırması ve simülasyonun yan etkisiz çalıştığı `tests/Unit` altında otomatik testlerle doğrulanır.
+Karar kuralları, verimlilik hesapları, baseline maliyet karşılaştırması ve simülasyonun yan etkisiz çalıştığı `tests/Unit` altında otomatik testlerle doğrulanır. `tests/Feature/Livewire` altında `SimulationPanelTest` ve `DashboardTest` (özet grafiklerin sadece bir simülasyon çalıştıktan sonra göründüğünü doğrular) yer alır.
