@@ -5,6 +5,7 @@ namespace Tests\Unit\Simulation;
 use App\Domain\Decision\DecisionAction;
 use App\Services\Aggregation\HourlyAggregator;
 use App\Services\AssetService;
+use App\Services\Battery\DegradationCostCalculator;
 use App\Services\Battery\SimpleCycleDegradationRule;
 use App\Services\Decision\DecisionEngine;
 use App\Services\Decision\Rules\DrawFromGridRule;
@@ -89,7 +90,7 @@ class SimulationRunnerTest extends TestCase
         $aggregator = new HourlyAggregator($assetService, new FixedMarketPriceProvider($this->priceList()));
         $engine = new DecisionEngine([
             new SocLimitGuardRule(),
-            new StoreSurplusRule(),
+            new StoreSurplusRule(new DegradationCostCalculator()),
             new SellSurplusRule(),
             new UseBatteryRule(),
             new DrawFromGridRule(),

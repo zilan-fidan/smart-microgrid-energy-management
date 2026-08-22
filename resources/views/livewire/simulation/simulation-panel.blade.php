@@ -54,6 +54,10 @@
                 <p class="text-sm text-slate-300 mb-2">Piyasa Fiyatı (TL/kWh)</p>
                 <canvas id="priceChart" height="220"></canvas>
             </div>
+            <div class="rounded-[10px] p-4 bg-brand-navy border border-brand-navy-light">
+                <p class="text-sm text-slate-300 mb-2">Batarya SOH Aşınması (saatlik)</p>
+                <canvas id="sohChart" height="220"></canvas>
+            </div>
         </div>
 
         {{-- Detail table --}}
@@ -102,22 +106,28 @@
 <script>
     let socProductionChart = null;
     let priceChart = null;
+    let sohChart = null;
 
     $wire.on('simulation-completed', ({ hourly }) => {
         const labels = hourly.map(h => String(h.hour).padStart(2, '0') + ':00');
         const soc = hourly.map(h => h.soc);
+        const soh = hourly.map(h => h.soh);
         const production = hourly.map(h => h.production);
         const consumption = hourly.map(h => h.consumption);
         const price = hourly.map(h => h.price);
 
         const socProductionCtx = document.getElementById('socProductionChart');
         const priceCtx = document.getElementById('priceChart');
+        const sohCtx = document.getElementById('sohChart');
 
         if (socProductionChart) {
             socProductionChart.destroy();
         }
         if (priceChart) {
             priceChart.destroy();
+        }
+        if (sohChart) {
+            sohChart.destroy();
         }
 
         socProductionChart = new Chart(socProductionCtx, {
@@ -204,6 +214,42 @@
                         beginAtZero: true,
                         ticks: { color: '#94a3b8' },
                         grid: { color: '#243256' },
+                    },
+                    x: {
+                        ticks: { color: '#94a3b8' },
+                        grid: { color: '#243256' },
+                    },
+                },
+                plugins: {
+                    legend: { labels: { color: '#e2e8f0' } },
+                },
+            },
+        });
+
+        sohChart = new Chart(sohCtx, {
+            type: 'line',
+            data: {
+                labels,
+                datasets: [
+                    {
+                        label: 'SOH (%)',
+                        data: soh,
+                        borderColor: '#00E500',
+                        backgroundColor: '#00E500',
+                        tension: 0.3,
+                    },
+                ],
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    // Not 0-100: a single day's wear is a fraction of a percent,
+                    // so a full 0-100 axis would flatten the line to invisible.
+                    // Auto-scaling makes the (small but real) decline readable.
+                    y: {
+                        ticks: { color: '#94a3b8' },
+                        grid: { color: '#243256' },
+                        title: { display: true, text: 'SOH (%)', color: '#94a3b8' },
                     },
                     x: {
                         ticks: { color: '#94a3b8' },

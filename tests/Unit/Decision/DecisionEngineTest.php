@@ -3,6 +3,7 @@
 namespace Tests\Unit\Decision;
 
 use App\Domain\Decision\DecisionAction;
+use App\Services\Battery\DegradationCostCalculator;
 use App\Services\Decision\DecisionEngine;
 use App\Services\Decision\Rules\DrawFromGridRule;
 use App\Services\Decision\Rules\SellSurplusRule;
@@ -26,7 +27,7 @@ class DecisionEngineTest extends TestCase
     {
         return new DecisionEngine([
             new SocLimitGuardRule(),
-            new StoreSurplusRule(),
+            new StoreSurplusRule(new DegradationCostCalculator()),
             new SellSurplusRule(),
             new UseBatteryRule(),
             new DrawFromGridRule(),

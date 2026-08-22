@@ -5,6 +5,7 @@ namespace Tests\Unit\Simulation;
 use App\Domain\Decision\DecisionAction;
 use App\Domain\Decision\DecisionContext;
 use App\Domain\Simulation\DailySimulation;
+use App\Services\Battery\DegradationCostCalculator;
 use App\Services\Decision\DecisionEngine;
 use App\Services\Decision\Rules\DrawFromGridRule;
 use App\Services\Decision\Rules\SellSurplusRule;
@@ -28,7 +29,7 @@ class BaselineCostCalculatorTest extends TestCase
     {
         return new DecisionEngine([
             new SocLimitGuardRule(),
-            new StoreSurplusRule(),
+            new StoreSurplusRule(new DegradationCostCalculator()),
             new SellSurplusRule(),
             new UseBatteryRule(),
             new DrawFromGridRule(),
