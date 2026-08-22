@@ -14,9 +14,25 @@ class StoreSurplusRule implements DecisionRuleInterface
         return 10;
     }
 
+    /**
+     * Breakeven test: does storing now actually pay off later? Storing 1 raw
+     * kWh of surplus returns `efficiency` kWh once discharged back out (the
+     * round-trip loss is unavoidable), so it's only worth it when the
+     * expected future sell price, discounted by that efficiency, still
+     * beats what the surplus is worth right now (the current price). If it
+     * doesn't, storing is a guaranteed loss no matter how "low" the current
+     * price looks against the day's median — the old median-based check
+     * couldn't tell the two apart, this one can.
+     */
     public function applies(DecisionContext $context): bool
     {
-        return $context->netSurplusOrDeficit() > 0 && $context->isPriceLow();
+        if ($context->netSurplusOrDeficit() <= 0) {
+            return false;
+        }
+
+        $breakevenSellPrice = $context->getExpectedSellPrice() * $context->battery->getEfficiencyRate();
+
+        return $breakevenSellPrice > $context->priceKwh;
     }
 
     public function decide(DecisionContext $context): Decision
@@ -36,9 +52,15 @@ class StoreSurplusRule implements DecisionRuleInterface
             : 0.0;
         $resultingSoc = min($battery->getMaxSoc(), $battery->getSocPercent() + $socDelta);
 
+        $expectedSellPrice = $context->getExpectedSellPrice();
+        $expectedProfitTl = ($expectedSellPrice * $battery->getEfficiencyRate() - $context->priceKwh) * $storedKwh;
+
         $reasons = [
             'Üretim fazlası: '.round($surplusKwh, 2).' kWh',
-            'Fiyat düşük (medyan altı)',
+            'Bu işlemin beklenen kârı ≈ '.round($expectedProfitTl, 2).' TL'
+                .' (beklenen satış fiyatı '.round($expectedSellPrice, 2).' TL/kWh,'
+                .' alış fiyatı '.round($context->priceKwh, 2).' TL/kWh,'
+                .' verim %'.round($battery->getEfficiencyRate() * 100).')',
             'Batarya SOC sınırın altında, depolama mümkün',
         ];
 
@@ -65,6 +87,7 @@ class StoreSurplusRule implements DecisionRuleInterface
             round($resultingSoc, 2),
             round($lossKwh, 4),
             round($curtailedSoldKwh, 4),
+            round($expectedProfitTl, 4),
         );
     }
 }

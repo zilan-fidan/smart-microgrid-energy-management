@@ -34,6 +34,36 @@ class StoreSurplusRuleTest extends TestCase
         $this->assertFalse($rule->applies($context));
     }
 
+    /**
+     * Mentor recommendation #1: a below-median price is no longer enough on
+     * its own — storing must also clear the round-trip breakeven test. Here
+     * the current price (1.0) is below the day's median (2.0), so the old
+     * isPriceLow() check would have stored, but every remaining hour is
+     * priced even lower (0.5) — discounted by efficiency, storing now would
+     * be sold later for less than it cost, a guaranteed loss.
+     */
+    public function test_does_not_apply_when_breakeven_fails_even_at_a_below_median_price(): void
+    {
+        $rule = new StoreSurplusRule();
+
+        $hourlyPrices = array_fill(0, 24, 2.0);
+        $hourlyPrices[20] = 1.0;
+        $hourlyPrices[21] = 0.5;
+        $hourlyPrices[22] = 0.5;
+        $hourlyPrices[23] = 0.5;
+
+        $context = DecisionContextFactory::make(
+            hour: 20,
+            productionKwh: 70.0,
+            consumptionKwh: 50.0,
+            priceKwh: 1.0,
+            hourlyPrices: $hourlyPrices,
+        );
+
+        $this->assertTrue($context->isPriceLow(), 'sanity check: price should read as low against the day median');
+        $this->assertFalse($rule->applies($context));
+    }
+
     public function test_decide_stores_surplus_scaled_by_charge_efficiency(): void
     {
         $rule = new StoreSurplusRule();
@@ -84,5 +114,38 @@ class StoreSurplusRuleTest extends TestCase
         $this->assertStringContainsString('piyasaya satıldı', $reasonText);
         $this->assertStringContainsString('5 kWh depolandı', $reasonText);
         $this->assertStringContainsString('14.44 kWh', $reasonText);
+    }
+
+    public function test_decide_computes_expected_profit_from_expected_sell_price_and_efficiency(): void
+    {
+        $rule = new StoreSurplusRule();
+        // efficiency 0.81 (not sqrt-split) is the round-trip rate the profit
+        // formula applies to the expected sell price.
+        $battery = BatteryFactory::make([
+            'capacity_kwh' => 100.0,
+            'soc_percent' => 50.0,
+            'max_soc' => 90.0,
+            'efficiency_rate' => 0.81,
+        ]);
+
+        $hourlyPrices = array_fill(0, 24, 2.0);
+        $hourlyPrices[10] = 1.0;
+        $context = DecisionContextFactory::make(
+            hour: 10,
+            productionKwh: 70.0,
+            consumptionKwh: 50.0,
+            priceKwh: 1.0,
+            battery: $battery,
+            hourlyPrices: $hourlyPrices,
+        );
+
+        $decision = $rule->decide($context);
+
+        // storedKwh = 18 (surplus 20 * sqrt(0.81) charge efficiency, headroom not limiting).
+        // expectedSellPrice = 75th percentile of the remaining flat-2.0 hours = 2.0.
+        // expectedProfitTl = (2.0 * 0.81 - 1.0) * 18 = 0.62 * 18 = 11.16 TL.
+        $this->assertEqualsWithDelta(18.0, $decision->amountKwh, 0.0001);
+        $this->assertEqualsWithDelta(11.16, $decision->expectedProfitTl, 0.001);
+        $this->assertStringContainsString('beklenen kârı ≈ 11.16 TL', implode(' ', $decision->reasons));
     }
 }

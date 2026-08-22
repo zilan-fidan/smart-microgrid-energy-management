@@ -12,6 +12,10 @@ class Decision
      *                                   the battery (headroom-limited) and sold to the
      *                                   market instead, in the same hour. Always 0 for
      *                                   every action other than Store.
+     * @param  float  $expectedProfitTl  Estimated TL profit for a Store decision, based
+     *                                   on the expected future sell price and round-trip
+     *                                   efficiency (see DecisionContext::getExpectedSellPrice()).
+     *                                   Always 0 for every action other than Store.
      */
     public function __construct(
         public readonly DecisionAction $action,
@@ -20,6 +24,7 @@ class Decision
         public readonly float $resultingSocPercent,
         public readonly float $lossKwh = 0.0,
         public readonly float $curtailedSoldKwh = 0.0,
+        public readonly float $expectedProfitTl = 0.0,
     ) {
     }
 }
