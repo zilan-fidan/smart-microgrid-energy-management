@@ -16,10 +16,17 @@ class SellSurplusRule implements DecisionRuleInterface
 
     public function applies(DecisionContext $context): bool
     {
-        // The battery-full edge case is intercepted earlier by SocLimitGuardRule,
-        // so by the time we get here a price-low surplus would already be caught
-        // by StoreSurplusRule — this only fires for the price-high case.
-        return $context->netSurplusOrDeficit() > 0 && $context->isPriceHigh();
+        // StoreSurplusRule (priority 10, evaluated before this rule) now
+        // gates on an economic breakeven test rather than "price below
+        // median" — so a surplus at a below-median price can legitimately
+        // fail Store's test and reach this rule. Gating this rule on
+        // isPriceHigh() would then let that surplus fall through to
+        // DrawFromGridRule's fallback, which only handles deficits and
+        // would silently drop it. Any surplus that reaches this rule (SOC
+        // full is already intercepted by SocLimitGuardRule, economically
+        // worthwhile storage by StoreSurplusRule) has nowhere else to go
+        // but the market, regardless of price level.
+        return $context->netSurplusOrDeficit() > 0;
     }
 
     public function decide(DecisionContext $context): Decision
@@ -31,7 +38,9 @@ class SellSurplusRule implements DecisionRuleInterface
             round($surplusKwh, 4),
             [
                 'Üretim fazlası: '.round($surplusKwh, 2).' kWh',
-                'Fiyat yüksek (medyan üstü)',
+                $context->isPriceHigh()
+                    ? 'Fiyat yüksek (medyan üstü)'
+                    : 'Depolamanın beklenen kârı yok (round-trip kaybını karşılamıyor)',
                 'Piyasaya satış tercih edildi',
             ],
             $context->battery->getSocPercent(),
