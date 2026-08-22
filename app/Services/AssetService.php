@@ -134,6 +134,7 @@ class AssetService
         float $minSoc,
         float $maxSoc,
         float $efficiencyRate,
+        float $replacementCostTl,
     ): Battery {
         $existing = $this->getBattery();
 
@@ -147,9 +148,21 @@ class AssetService
             'max_soc' => $maxSoc,
             'efficiency_rate' => $efficiencyRate,
             'soh_percent' => $existing?->getSohPercent() ?? 100.0,
+            'replacement_cost_tl' => $replacementCostTl,
         ]);
 
         return Battery::fromArray($saved);
+    }
+
+    /**
+     * Rough starting suggestion for a new battery's replacement cost, shown
+     * as a pre-filled (editable) form default: a flat TL/kWh nameplate
+     * multiplier times the battery's capacity. Not a real market quote —
+     * just a plausible order of magnitude the user can override.
+     */
+    public function suggestedReplacementCostTl(float $capacityKwh): float
+    {
+        return $capacityKwh * 100.0;
     }
 
     public function deleteBattery(): void

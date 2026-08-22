@@ -12,8 +12,12 @@ class SimpleCycleDegradationRule implements BatteryDegradationRuleInterface
      * 0.05%/cycle ~ 80% SOH after ~400 full cycles, a plausible order of
      * magnitude for consumer/commercial Li-ion — small enough per hour to
      * be invisible, but visibly adds up over a multi-day/what-if demo.
+     *
+     * Public: DegradationCostCalculator reuses this exact rate to amortize
+     * replacement cost per kWh cycled, so the wear rate has a single source
+     * of truth instead of two constants that could drift apart.
      */
-    private const DEGRADATION_PER_FULL_CYCLE = 0.05;
+    public const DEGRADATION_PER_FULL_CYCLE = 0.05;
 
     public function applyDegradation(Battery $battery, float $cycledKwh): Battery
     {

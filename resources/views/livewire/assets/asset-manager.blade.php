@@ -87,6 +87,14 @@
                         class="w-full bg-slate-950 border border-slate-700 rounded-[10px] px-3 py-2 text-sm focus:outline-none focus:border-brand-green">
                     @error('efficiencyRate') <p class="text-xs text-rose-400 mt-1">{{ $message }}</p> @enderror
                 </div>
+
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1">Değiştirme Maliyeti (TL)</label>
+                    <input type="number" step="0.01" wire:model="replacementCostTl"
+                        class="w-full bg-slate-950 border border-slate-700 rounded-[10px] px-3 py-2 text-sm focus:outline-none focus:border-brand-green">
+                    <p class="mt-1 text-[11px] text-slate-500">Bataryayı sıfırdan değiştirmenin maliyeti — depolama kararlarında yıpranma maliyetini hesaplamak için kullanılır.</p>
+                    @error('replacementCostTl') <p class="text-xs text-rose-400 mt-1">{{ $message }}</p> @enderror
+                </div>
             @endif
 
             <div class="flex gap-2 pt-2">
@@ -111,6 +119,7 @@
                         <div><dt class="text-slate-400">SOC</dt><dd>%{{ $battery->getSocPercent() }}</dd></div>
                         <div><dt class="text-slate-400">Min / Max SOC</dt><dd>%{{ $battery->getMinSoc() }} / %{{ $battery->getMaxSoc() }}</dd></div>
                         <div><dt class="text-slate-400">Verimlilik</dt><dd>{{ $battery->getEfficiencyRate() }}</dd></div>
+                        <div><dt class="text-slate-400">Değiştirme Maliyeti</dt><dd>{{ number_format($battery->getReplacementCostTl(), 2) }} TL</dd></div>
                     </dl>
                     <button wire:click="deleteBattery" wire:confirm="Bataryayı silmek istediğine emin misin?"
                         class="mt-4 px-3 py-1.5 text-xs font-semibold rounded-[10px] border border-rose-800 text-rose-400 hover:bg-rose-950">

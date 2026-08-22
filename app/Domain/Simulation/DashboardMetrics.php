@@ -42,6 +42,7 @@ class DashboardMetrics
         $hourlyBreakdown = array_map(fn (SimulationResult $r) => [
             'hour' => $r->hour,
             'soc' => round($r->decision->resultingSocPercent, 1),
+            'soh' => round($r->sohPercentAfter, 3),
             'production' => round($r->productionKwh, 2),
             'consumption' => round($r->consumptionKwh, 2),
             'price' => round($r->priceKwh, 2),

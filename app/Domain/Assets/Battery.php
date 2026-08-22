@@ -15,6 +15,7 @@ class Battery implements StorageAssetInterface
         private readonly float $maxSoc,
         private readonly float $efficiencyRate,
         private readonly float $sohPercent = 100.0,
+        private readonly float $replacementCostTl = 0.0,
     ) {
     }
 
@@ -29,6 +30,9 @@ class Battery implements StorageAssetInterface
             maxSoc: (float) $data['max_soc'],
             efficiencyRate: (float) $data['efficiency_rate'],
             sohPercent: (float) ($data['soh_percent'] ?? 100.0),
+            // Older persisted records predate this field — fall back to the
+            // same rough default AssetService applies to brand-new batteries.
+            replacementCostTl: (float) ($data['replacement_cost_tl'] ?? ((float) $data['capacity_kwh'] * 100.0)),
         );
     }
 
@@ -44,6 +48,7 @@ class Battery implements StorageAssetInterface
             'max_soc' => $this->maxSoc,
             'efficiency_rate' => $this->efficiencyRate,
             'soh_percent' => $this->sohPercent,
+            'replacement_cost_tl' => $this->replacementCostTl,
         ];
     }
 
@@ -85,5 +90,10 @@ class Battery implements StorageAssetInterface
     public function getSohPercent(): float
     {
         return $this->sohPercent;
+    }
+
+    public function getReplacementCostTl(): float
+    {
+        return $this->replacementCostTl;
     }
 }

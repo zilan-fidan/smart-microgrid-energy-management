@@ -6,17 +6,43 @@ use App\Domain\Contracts\DecisionRuleInterface;
 use App\Domain\Decision\Decision;
 use App\Domain\Decision\DecisionAction;
 use App\Domain\Decision\DecisionContext;
+use App\Services\Battery\DegradationCostCalculator;
 
 class StoreSurplusRule implements DecisionRuleInterface
 {
+    public function __construct(
+        private readonly DegradationCostCalculator $degradationCostCalculator,
+    ) {
+    }
+
     public function priority(): int
     {
         return 10;
     }
 
+    /**
+     * Breakeven test: does storing now actually pay off later, once BOTH
+     * costs of cycling the battery are accounted for? Storing 1 raw kWh of
+     * surplus returns `efficiency` kWh once discharged back out (the
+     * round-trip energy loss), and also wears the cell by a small amount
+     * (SimpleCycleDegradationRule's SOH loss, amortized to a TL/kWh cost by
+     * DegradationCostCalculator). The net expected spread — future sell
+     * price discounted by efficiency, minus the current price — has to
+     * clear the wear cost too, not just be positive. A "profitable"
+     * round-trip that only just covers the energy loss can still be a net
+     * loss once you price in shaving cycles off the battery's life.
+     */
     public function applies(DecisionContext $context): bool
     {
-        return $context->netSurplusOrDeficit() > 0 && $context->isPriceLow();
+        if ($context->netSurplusOrDeficit() <= 0) {
+            return false;
+        }
+
+        $battery = $context->battery;
+        $expectedSpread = $context->getExpectedSellPrice() * $battery->getEfficiencyRate() - $context->priceKwh;
+        $degradationCostPerKwh = $this->degradationCostCalculator->costPerKwh($battery);
+
+        return $expectedSpread > $degradationCostPerKwh;
     }
 
     public function decide(DecisionContext $context): Decision
@@ -36,9 +62,17 @@ class StoreSurplusRule implements DecisionRuleInterface
             : 0.0;
         $resultingSoc = min($battery->getMaxSoc(), $battery->getSocPercent() + $socDelta);
 
+        $expectedSellPrice = $context->getExpectedSellPrice();
+        $degradationCostPerKwh = $this->degradationCostCalculator->costPerKwh($battery);
+        $expectedProfitTl = ($expectedSellPrice * $battery->getEfficiencyRate() - $context->priceKwh - $degradationCostPerKwh) * $storedKwh;
+
         $reasons = [
             'Üretim fazlası: '.round($surplusKwh, 2).' kWh',
-            'Fiyat düşük (medyan altı)',
+            'Beklenen net kâr ≈ '.round($expectedProfitTl, 2).' TL'
+                .' (beklenen satış fiyatı '.round($expectedSellPrice, 2).' TL/kWh,'
+                .' alış fiyatı '.round($context->priceKwh, 2).' TL/kWh,'
+                .' verim %'.round($battery->getEfficiencyRate() * 100).','
+                .' '.round($degradationCostPerKwh * $storedKwh, 2).' TL aşınma maliyeti düşüldükten sonra)',
             'Batarya SOC sınırın altında, depolama mümkün',
         ];
 
@@ -65,6 +99,7 @@ class StoreSurplusRule implements DecisionRuleInterface
             round($resultingSoc, 2),
             round($lossKwh, 4),
             round($curtailedSoldKwh, 4),
+            round($expectedProfitTl, 4),
         );
     }
 }

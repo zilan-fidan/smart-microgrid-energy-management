@@ -5,6 +5,7 @@ namespace Tests\Unit\Simulation;
 use App\Domain\Decision\DecisionAction;
 use App\Services\Aggregation\HourlyAggregator;
 use App\Services\AssetService;
+use App\Services\Battery\DegradationCostCalculator;
 use App\Services\Battery\SimpleCycleDegradationRule;
 use App\Services\Decision\DecisionEngine;
 use App\Services\Decision\Rules\DrawFromGridRule;
@@ -25,6 +26,16 @@ use Tests\Support\ThrowingProfileGeneratorResolver;
  * tinker in Faz 6 (see the SOH trace in that conversation) — so the
  * per-hour actions/SOC/SOH assertions below are regression checks against
  * previously validated output, not newly guessed numbers.
+ *
+ * Mentor recommendation #1 (round-trip breakeven for StoreSurplusRule)
+ * changed the trace: with this fixture's flat 2.0 TL/kWh pricing (a single
+ * evening spike at h19 that no longer overlaps any surplus hour), storing
+ * at h8-h16 is never profitable once round-trip efficiency is priced in —
+ * the expected future sell price, discounted by efficiency, never clears
+ * the current price. The battery now only cycles once (h0's deficit drain
+ * to min SOC) instead of also charging at h8 and discharging at h17-h18;
+ * every surplus hour sells directly instead. Re-verified against the real
+ * pipeline output (not hand-derived) after the rule change.
  */
 class SimulationRunnerTest extends TestCase
 {
@@ -79,7 +90,7 @@ class SimulationRunnerTest extends TestCase
         $aggregator = new HourlyAggregator($assetService, new FixedMarketPriceProvider($this->priceList()));
         $engine = new DecisionEngine([
             new SocLimitGuardRule(),
-            new StoreSurplusRule(),
+            new StoreSurplusRule(new DegradationCostCalculator()),
             new SellSurplusRule(),
             new UseBatteryRule(),
             new DrawFromGridRule(),
@@ -133,35 +144,25 @@ class SimulationRunnerTest extends TestCase
             $this->assertEqualsWithDelta(10.0, $results[$h]->decision->resultingSocPercent, 0.01);
         }
 
-        // h8: big solar surplus at a low-relative price, capped by headroom -> fills to max.
-        $this->assertSame(DecisionAction::Store, $results[8]->decision->action);
-        $this->assertEqualsWithDelta(90.0, $results[8]->decision->resultingSocPercent, 0.01);
-
-        // h9-h16: battery full -> guard redirects surplus to market.
-        foreach (range(9, 16) as $h) {
+        // h8-h16: solar surplus, but storing it would never break even once round-trip
+        // efficiency is priced in against the expected future sell price (flat 2.0
+        // pricing, no upcoming spike to arbitrage) -> sold directly, battery untouched.
+        foreach (range(8, 16) as $h) {
             $this->assertSame(DecisionAction::Sell, $results[$h]->decision->action);
-            $this->assertEqualsWithDelta(90.0, $results[$h]->decision->resultingSocPercent, 0.01);
+            $this->assertEqualsWithDelta(10.0, $results[$h]->decision->resultingSocPercent, 0.01);
         }
 
-        // h17: evening deficit, battery has headroom -> discharges toward min.
-        $this->assertSame(DecisionAction::UseBattery, $results[17]->decision->action);
-        $this->assertEqualsWithDelta(16.2, $results[17]->decision->resultingSocPercent, 0.05);
-
-        // h18: drains the remainder down to exactly min SOC.
-        $this->assertSame(DecisionAction::UseBattery, $results[18]->decision->action);
-        $this->assertEqualsWithDelta(10.0, $results[18]->decision->resultingSocPercent, 0.01);
-
-        // h19-h23: battery pinned at min again -> grid for the rest of the day.
-        foreach (range(19, 23) as $h) {
+        // h17-h23: battery still pinned at min from h0 (it never recharged) -> grid for the rest of the day.
+        foreach (range(17, 23) as $h) {
             $this->assertSame(DecisionAction::DrawFromGrid, $results[$h]->decision->action);
+            $this->assertEqualsWithDelta(10.0, $results[$h]->decision->resultingSocPercent, 0.01);
         }
 
-        // A day of real cycling should measurably (but only slightly) wear the battery.
-        // Store's wear is based on amountKwh only (energy that actually reaches the
-        // cell) — its charging-leg loss never touches the cell, so it doesn't cycle it.
+        // Only h0's deficit drain cycles the cell now — h8/h17/h18 no longer
+        // charge or discharge it, so wear is smaller than before this change.
         $finalSoh = $results[23]->sohPercentAfter;
         $this->assertLessThan(100.0, $finalSoh);
-        $this->assertEqualsWithDelta(99.9000, $finalSoh, 0.001);
+        $this->assertEqualsWithDelta(99.9800, $finalSoh, 0.001);
     }
 
     public function test_running_the_simulation_never_writes_to_the_repository(): void

@@ -25,7 +25,7 @@ class AssetServiceTest extends TestCase
     public function test_saving_a_new_battery_defaults_soh_to_100(): void
     {
         $repository = new InMemoryAssetRepository();
-        $battery = $this->service($repository)->saveBattery('Ana Batarya', 100.0, 50.0, 10.0, 90.0, 0.9);
+        $battery = $this->service($repository)->saveBattery('Ana Batarya', 100.0, 50.0, 10.0, 90.0, 0.9, 10_000.0);
 
         $this->assertSame(100.0, $battery->getSohPercent());
     }
@@ -35,7 +35,7 @@ class AssetServiceTest extends TestCase
         $repository = new InMemoryAssetRepository();
         $service = $this->service($repository);
 
-        $battery = $service->saveBattery('Ana Batarya', 100.0, 50.0, 10.0, 90.0, 0.9);
+        $battery = $service->saveBattery('Ana Batarya', 100.0, 50.0, 10.0, 90.0, 0.9, 10_000.0);
 
         // Simulate wear having been persisted (e.g. by a future feature that
         // writes simulated degradation back) by writing a degraded SOH
@@ -55,7 +55,7 @@ class AssetServiceTest extends TestCase
         $this->assertSame(97.5, $service->getBattery()->getSohPercent());
 
         // Edit an unrelated field (capacity) through the normal CRUD path.
-        $updated = $service->saveBattery('Ana Batarya', 120.0, 50.0, 10.0, 90.0, 0.9);
+        $updated = $service->saveBattery('Ana Batarya', 120.0, 50.0, 10.0, 90.0, 0.9, 10_000.0);
 
         $this->assertSame(120.0, $updated->getCapacityKwh());
         $this->assertSame(97.5, $updated->getSohPercent(), 'editing the battery must not reset its SOH');

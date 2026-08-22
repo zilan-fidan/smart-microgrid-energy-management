@@ -29,6 +29,8 @@ class AssetManager extends Component
 
     public string $efficiencyRate = '';
 
+    public string $replacementCostTl = '';
+
     protected AssetService $assetService;
 
     public function boot(AssetService $assetService): void
@@ -59,6 +61,7 @@ class AssetManager extends Component
                 'minSoc' => ['required', 'numeric', 'min:0', 'max:100'],
                 'maxSoc' => ['required', 'numeric', 'min:0', 'max:100', 'gte:minSoc'],
                 'efficiencyRate' => ['required', 'numeric', 'min:0', 'max:1'],
+                'replacementCostTl' => ['required', 'numeric', 'gt:0'],
             ],
             default => [],
         };
@@ -72,6 +75,7 @@ class AssetManager extends Component
             'averageDemandKwh.min' => 'Tüketim negatif olamaz.',
             'socPercent.max' => 'SOC 0-100 arasında olmalı.',
             'maxSoc.gte' => 'Maksimum SOC, minimum SOC\'den küçük olamaz.',
+            'replacementCostTl.gt' => 'Değiştirme maliyeti 0\'dan büyük olmalı.',
         ];
     }
 
@@ -119,6 +123,7 @@ class AssetManager extends Component
                 (float) $this->minSoc,
                 (float) $this->maxSoc,
                 (float) $this->efficiencyRate,
+                (float) $this->replacementCostTl,
             ),
             default => null,
         };
@@ -171,6 +176,10 @@ class AssetManager extends Component
         $battery = $this->assetService->getBattery();
 
         if ($battery === null) {
+            // No battery yet — pre-fill a rough, editable starting suggestion
+            // instead of leaving the field blank (mentor recommendation #2).
+            $this->replacementCostTl = (string) $this->assetService->suggestedReplacementCostTl(100.0);
+
             return;
         }
 
@@ -181,6 +190,7 @@ class AssetManager extends Component
         $this->minSoc = (string) $battery->getMinSoc();
         $this->maxSoc = (string) $battery->getMaxSoc();
         $this->efficiencyRate = (string) $battery->getEfficiencyRate();
+        $this->replacementCostTl = (string) $battery->getReplacementCostTl();
     }
 
     private function currentRecords(): Collection
@@ -204,6 +214,7 @@ class AssetManager extends Component
         $this->minSoc = '';
         $this->maxSoc = '';
         $this->efficiencyRate = '';
+        $this->replacementCostTl = '';
         $this->resetValidation();
     }
 }

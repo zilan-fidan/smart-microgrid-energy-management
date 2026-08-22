@@ -19,4 +19,6 @@ interface StorageAssetInterface
     public function getEfficiencyRate(): float;
 
     public function getSohPercent(): float;
+
+    public function getReplacementCostTl(): float;
 }
