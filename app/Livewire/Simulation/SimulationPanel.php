@@ -3,6 +3,7 @@
 namespace App\Livewire\Simulation;
 
 use App\Domain\Contracts\SimulationRunnerInterface;
+use App\Domain\Decision\DecisionAction;
 use App\Domain\Simulation\DashboardMetrics;
 use App\Domain\Simulation\SimulationResult;
 use App\Services\Simulation\BaselineCostCalculator;
@@ -53,6 +54,9 @@ class SimulationPanel extends Component
             'consumption' => round($r->consumptionKwh, 2),
             'price' => round($r->priceKwh, 2),
             'reasons' => $r->decision->reasons,
+            'expectedProfitTl' => $r->decision->action === DecisionAction::Store
+                ? round($r->decision->expectedProfitTl, 2)
+                : null,
         ], $daily->results);
 
         $metrics = DashboardMetrics::fromDailySimulation($daily, $this->baselineCostCalculator);

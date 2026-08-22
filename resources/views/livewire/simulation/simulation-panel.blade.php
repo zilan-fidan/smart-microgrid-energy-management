@@ -64,6 +64,7 @@
                         <th class="px-3 py-2 font-medium">Saat</th>
                         <th class="px-3 py-2 font-medium">Karar</th>
                         <th class="px-3 py-2 font-medium">Miktar (kWh)</th>
+                        <th class="px-3 py-2 font-medium">Beklenen Kâr</th>
                         <th class="px-3 py-2 font-medium">Üretim</th>
                         <th class="px-3 py-2 font-medium">Tüketim</th>
                         <th class="px-3 py-2 font-medium">Fiyat</th>
@@ -77,6 +78,13 @@
                             <td class="px-3 py-2">{{ str_pad($row['hour'], 2, '0', STR_PAD_LEFT) }}:00</td>
                             <td class="px-3 py-2">{{ $row['action'] }}</td>
                             <td class="px-3 py-2">{{ $row['amountKwh'] }}</td>
+                            <td class="px-3 py-2">
+                                @if ($row['expectedProfitTl'] !== null)
+                                    <span class="text-brand-green font-semibold">{{ number_format($row['expectedProfitTl'], 2) }} TL</span>
+                                @else
+                                    <span class="text-slate-600">&mdash;</span>
+                                @endif
+                            </td>
                             <td class="px-3 py-2">{{ $row['production'] }}</td>
                             <td class="px-3 py-2">{{ $row['consumption'] }}</td>
                             <td class="px-3 py-2">{{ $row['price'] }}</td>
