@@ -2,9 +2,11 @@
 
 namespace App\Livewire\Simulation;
 
+use App\Domain\Contracts\MultiDaySimulationRunnerInterface;
 use App\Domain\Contracts\SimulationRunnerInterface;
 use App\Domain\Decision\DecisionAction;
 use App\Domain\Simulation\DashboardMetrics;
+use App\Domain\Simulation\MultiDaySummary;
 use App\Domain\Simulation\SimulationResult;
 use App\Services\Simulation\BaselineCostCalculator;
 use Livewire\Attributes\Layout;
@@ -21,13 +23,31 @@ class SimulationPanel extends Component
 
     public ?string $error = null;
 
+    /** Independent "cumulative savings / payback" feature — separate from the 24h run above. */
+    public int $multiDays = 7;
+
+    public array $multiDayMetrics = [];
+
+    public bool $hasRunMultiDay = false;
+
+    public ?string $multiDayError = null;
+
+    /** Hard ceiling so a runaway input can't spin the runner for minutes. */
+    public const MAX_MULTI_DAYS = 90;
+
     protected SimulationRunnerInterface $runner;
+
+    protected MultiDaySimulationRunnerInterface $multiDayRunner;
 
     protected BaselineCostCalculator $baselineCostCalculator;
 
-    public function boot(SimulationRunnerInterface $runner, BaselineCostCalculator $baselineCostCalculator): void
-    {
+    public function boot(
+        SimulationRunnerInterface $runner,
+        MultiDaySimulationRunnerInterface $multiDayRunner,
+        BaselineCostCalculator $baselineCostCalculator,
+    ): void {
         $this->runner = $runner;
+        $this->multiDayRunner = $multiDayRunner;
         $this->baselineCostCalculator = $baselineCostCalculator;
     }
 
@@ -94,6 +114,47 @@ class SimulationPanel extends Component
         $this->dispatch(
             'simulation-completed',
             hourly: $metrics->hourlyBreakdown,
+        );
+    }
+
+    public function runMultiDaySimulation(): void
+    {
+        $this->multiDayError = null;
+
+        $days = max(1, min(self::MAX_MULTI_DAYS, $this->multiDays));
+        $this->multiDays = $days;
+
+        try {
+            $dailySimulations = $this->multiDayRunner->runMultipleDays($days);
+        } catch (RuntimeException $e) {
+            $this->multiDayError = $e->getMessage();
+            $this->hasRunMultiDay = false;
+
+            return;
+        }
+
+        $summary = MultiDaySummary::fromDailySimulations($dailySimulations, $this->baselineCostCalculator);
+
+        $paybackWithinRange = $summary->estimatedPaybackDays !== null
+            && $summary->estimatedPaybackDays <= $days;
+
+        $this->multiDayMetrics = [
+            'days' => $days,
+            'dailySavingsTl' => $summary->dailySavingsTl,
+            'cumulativeSavingsTl' => $summary->cumulativeSavingsTl,
+            'totalInvestmentTl' => $summary->totalInvestmentTl,
+            'estimatedPaybackDays' => $summary->estimatedPaybackDays,
+            'paybackWithinRange' => $paybackWithinRange,
+            'totalSavingsTl' => $summary->cumulativeSavingsTl[array_key_last($summary->cumulativeSavingsTl)] ?? 0.0,
+        ];
+
+        $this->hasRunMultiDay = true;
+
+        $this->dispatch(
+            'multi-day-simulation-completed',
+            days: $days,
+            cumulativeSavingsTl: $summary->cumulativeSavingsTl,
+            totalInvestmentTl: $summary->totalInvestmentTl,
         );
     }
 

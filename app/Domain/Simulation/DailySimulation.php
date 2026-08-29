@@ -2,15 +2,22 @@
 
 namespace App\Domain\Simulation;
 
+use App\Domain\Assets\Battery;
 use App\Domain\Decision\DecisionAction;
 
 class DailySimulation
 {
     /**
      * @param  SimulationResult[]  $results  Exactly 24, indexed 0-23.
+     * @param  Battery|null  $endingBattery  Immutable snapshot of the battery
+     *                                       after hour 23 (end-of-day SOC +
+     *                                       cumulatively worn SOH). Populated by
+     *                                       SimulationRunner; null for hand-built
+     *                                       instances that don't need it.
      */
     public function __construct(
         public readonly array $results,
+        public readonly ?Battery $endingBattery = null,
     ) {
     }
 

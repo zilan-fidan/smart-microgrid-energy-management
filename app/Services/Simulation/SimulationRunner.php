@@ -21,7 +21,7 @@ class SimulationRunner implements SimulationRunnerInterface
     ) {
     }
 
-    public function runFullDay(): DailySimulation
+    public function runFullDay(?Battery $startingBattery = null): DailySimulation
     {
         $results = [];
 
@@ -29,7 +29,11 @@ class SimulationRunner implements SimulationRunnerInterface
         // as the simulation's starting point. From then on we thread an
         // immutable snapshot forward ourselves — the real record is never
         // touched, so a "what-if" run can't corrupt stored SOC (or SOH).
-        $batterySnapshot = null;
+        //
+        // A caller may instead hand us a starting snapshot (the previous day's
+        // ending Battery in a multi-day run): same immutable-snapshot chain,
+        // just extended across the day boundary. Still no persistence writes.
+        $batterySnapshot = $startingBattery;
 
         for ($hour = 0; $hour < 24; $hour++) {
             $context = $this->aggregator->aggregate($hour, $batterySnapshot);
@@ -56,7 +60,10 @@ class SimulationRunner implements SimulationRunnerInterface
             );
         }
 
-        return new DailySimulation($results);
+        // $batterySnapshot now holds hour 23's post-degradation state: the
+        // end-of-day SOC and the cumulatively worn SOH. A multi-day runner
+        // feeds this straight back in as the next day's $startingBattery.
+        return new DailySimulation($results, $batterySnapshot);
     }
 
     /**
