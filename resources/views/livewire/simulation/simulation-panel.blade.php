@@ -100,6 +100,78 @@
             </table>
         </div>
     @endif
+
+    {{-- ─────────────────────────────────────────────────────────────
+         Çok günlük simülasyon — kümülatif tasarruf & geri ödeme.
+         Yukarıdaki 24 saatlik simülasyondan bağımsız çalışır.
+    ────────────────────────────────────────────────────────────── --}}
+    <div class="border-t border-brand-navy-light pt-6 space-y-4">
+        <h3 class="text-lg font-bold text-white">Çok Günlük Simülasyon (Kümülatif Tasarruf & Geri Ödeme)</h3>
+
+        <div class="flex flex-wrap items-center gap-3">
+            <label class="text-sm text-slate-300">Gün sayısı</label>
+            <select wire:model="multiDays"
+                class="px-3 py-2 text-sm rounded-[10px] bg-brand-navy border border-brand-navy-light text-slate-100">
+                <option value="7">7 gün</option>
+                <option value="14">14 gün</option>
+                <option value="30">30 gün</option>
+                <option value="60">60 gün</option>
+                <option value="90">90 gün</option>
+            </select>
+            <button wire:click="runMultiDaySimulation" wire:loading.attr="disabled" wire:target="runMultiDaySimulation"
+                class="px-4 py-2 text-sm font-bold rounded-[10px] bg-brand-green text-slate-950 hover:brightness-90 disabled:opacity-50">
+                <span wire:loading.remove wire:target="runMultiDaySimulation">Çok Günlü Simülasyonu Çalıştır</span>
+                <span wire:loading wire:target="runMultiDaySimulation">Çalışıyor...</span>
+            </button>
+            <span class="text-xs text-slate-500">Her gün "tipik bir günün" tekrarıdır; fiyat ve üretim profilleri gün gün sabittir.</span>
+        </div>
+
+        @if ($multiDayError)
+            <p class="text-sm text-rose-400">{{ $multiDayError }}</p>
+        @endif
+
+        @if ($hasRunMultiDay)
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="rounded-[10px] p-4 bg-brand-navy border border-brand-navy-light">
+                    <p class="text-xs text-slate-400">Simüle Edilen Gün</p>
+                    <p class="mt-1 text-xl font-bold text-brand-green">{{ $multiDayMetrics['days'] }}</p>
+                </div>
+                <div class="rounded-[10px] p-4 bg-brand-navy border border-brand-navy-light">
+                    <p class="text-xs text-slate-400">Yatırım (Batarya Değişim Maliyeti)</p>
+                    <p class="mt-1 text-xl font-bold text-brand-green">{{ number_format($multiDayMetrics['totalInvestmentTl'], 2) }} TL</p>
+                </div>
+                <div class="rounded-[10px] p-4 bg-brand-navy border border-brand-navy-light">
+                    <p class="text-xs text-slate-400">Toplam Tasarruf ({{ $multiDayMetrics['days'] }} gün)</p>
+                    <p class="mt-1 text-xl font-bold text-brand-green">{{ number_format($multiDayMetrics['totalSavingsTl'], 2) }} TL</p>
+                </div>
+                <div class="rounded-[10px] p-4 bg-brand-navy border border-brand-navy-light">
+                    <p class="text-xs text-slate-400">Tahmini Geri Ödeme</p>
+                    <p class="mt-1 text-xl font-bold text-brand-green">
+                        @if ($multiDayMetrics['estimatedPaybackDays'] === null)
+                            —
+                        @else
+                            {{ $multiDayMetrics['estimatedPaybackDays'] }} gün
+                        @endif
+                    </p>
+                </div>
+            </div>
+
+            <p class="text-sm {{ $multiDayMetrics['paybackWithinRange'] ? 'text-brand-green' : 'text-amber-400' }}">
+                @if ($multiDayMetrics['paybackWithinRange'])
+                    Tahmini geri ödeme: {{ $multiDayMetrics['estimatedPaybackDays'] }} gün — bu, simüle edilen {{ $multiDayMetrics['days'] }} günün içinde gerçekleşti.
+                @elseif ($multiDayMetrics['estimatedPaybackDays'] === null)
+                    Bu koşullarda batarya kendini geri ödemiyor (ortalama günlük tasarruf sıfır ya da negatif).
+                @else
+                    {{ $multiDayMetrics['days'] }} günde geri ödenmedi. Ortalama günlük tasarrufa göre kaba tahmin: ~{{ $multiDayMetrics['estimatedPaybackDays'] }} gün.
+                @endif
+            </p>
+
+            <div class="rounded-[10px] p-4 bg-brand-navy border border-brand-navy-light" wire:ignore>
+                <p class="text-sm text-slate-300 mb-2">Kümülatif Tasarruf (gün gün) vs. Yatırım</p>
+                <canvas id="cumulativeSavingsChart" height="220"></canvas>
+            </div>
+        @endif
+    </div>
 </div>
 
 @script
@@ -107,6 +179,7 @@
     let socProductionChart = null;
     let priceChart = null;
     let sohChart = null;
+    let cumulativeSavingsChart = null;
 
     $wire.on('simulation-completed', ({ hourly }) => {
         const labels = hourly.map(h => String(h.hour).padStart(2, '0') + ':00');
@@ -250,6 +323,59 @@
                         ticks: { color: '#94a3b8' },
                         grid: { color: '#243256' },
                         title: { display: true, text: 'SOH (%)', color: '#94a3b8' },
+                    },
+                    x: {
+                        ticks: { color: '#94a3b8' },
+                        grid: { color: '#243256' },
+                    },
+                },
+                plugins: {
+                    legend: { labels: { color: '#e2e8f0' } },
+                },
+            },
+        });
+    });
+
+    $wire.on('multi-day-simulation-completed', ({ days, cumulativeSavingsTl, totalInvestmentTl }) => {
+        const labels = cumulativeSavingsTl.map((_, i) => 'Gün ' + (i + 1));
+        const investmentLine = cumulativeSavingsTl.map(() => totalInvestmentTl);
+
+        const ctx = document.getElementById('cumulativeSavingsChart');
+        if (cumulativeSavingsChart) {
+            cumulativeSavingsChart.destroy();
+        }
+
+        cumulativeSavingsChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels,
+                datasets: [
+                    {
+                        label: 'Kümülatif Tasarruf (TL)',
+                        data: cumulativeSavingsTl,
+                        borderColor: '#00E500',
+                        backgroundColor: '#00E500',
+                        tension: 0.3,
+                    },
+                    {
+                        label: 'Yatırım (TL)',
+                        data: investmentLine,
+                        borderColor: '#f97316',
+                        backgroundColor: '#f97316',
+                        borderDash: [6, 4],
+                        pointRadius: 0,
+                    },
+                ],
+            },
+            options: {
+                responsive: true,
+                interaction: { mode: 'index', intersect: false },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { color: '#94a3b8' },
+                        grid: { color: '#243256' },
+                        title: { display: true, text: 'TL', color: '#94a3b8' },
                     },
                     x: {
                         ticks: { color: '#94a3b8' },
